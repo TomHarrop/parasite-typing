@@ -4,17 +4,24 @@
 import argparse
 from Bio import Entrez
 from Bio import SeqIO
-
+import datetime
 
 ###############
 # FUNCTIONS ###
 ###############
 
 
+# message
+def generate_message(message_text):
+    now = datetime.datetime.now().strftime('%a %b %d %H:%M:%S %Y')
+    print('[ ', now, ' ]: ', message_text)
+
+
 # get entrez GIs for COI genes for species
 def get_coi_gis(species_name):
     term = (species_name + '[ORGN] AND '
             '(COI OR cytochrome oxidase subunit I)')
+    generate_message('Search term\n' + term)
     handle = Entrez.esearch(db='nuccore', term=term)
     record = Entrez.read(handle)
     gi_list = record['IdList']
@@ -25,6 +32,7 @@ def get_coi_gis(species_name):
 def get_its_gis(species_name):
     term = (species_name + '[ORGN] AND '
             '(ITS1 OR internal transcribed spacer)')
+    generate_message('Search term\n' + term)
     handle = Entrez.esearch(db='nuccore', term=term)
     record = Entrez.read(handle)
     gi_list = record['IdList']
@@ -40,9 +48,11 @@ def flatten_list(l):
         else:
             yield x
 
+
 ########
 # CODE #
 ########
+
 
 def main():
 
@@ -58,20 +68,17 @@ def main():
     # identify myself to Entrez
     Entrez.email = args.e
 
-    # which fields can I search?
-    handle = Entrez.einfo()
-    record = Entrez.read(handle)
-    handle = Entrez.einfo(db='nuccore')
-    record = Entrez.read(handle)
-    record['DbInfo']['FieldList']
-
-    # Search for COI genes in weevil and both wasps
+    # Search in weevil and both wasps
     species_names = ['microctonus hyperodae', 'microctonus aethiopoides',
                      'listronotus bonariensis']
+
+    # get coi gene ids
+    generate_message("Getting COI GIs")
     gi_list_nested = list(get_coi_gis(x) for x in species_names)
     gi_list_all = list(flatten_list(gi_list_nested))
 
     # download records
+    generate_message("Downloading records")
     handle = Entrez.efetch(
         db='nuccore',
         id=gi_list_all,
@@ -80,13 +87,16 @@ def main():
     coi_records = SeqIO.parse(handle, 'gb')
 
     # output FASTA
+    generate_message("Writing FASTA")
     SeqIO.write(coi_records, 'data/coi.fa', 'fasta')
 
     # get ITS gis
+    generate_message("Getting COI GIs")
     its_gis_nested = list(get_its_gis(x) for x in species_names)
     its_gis_all = list(flatten_list(its_gis_nested))
 
     # download ITS records
+    generate_message("Downloading records")
     handle = Entrez.efetch(
         db='nuccore',
         id=its_gis_all,
@@ -95,7 +105,10 @@ def main():
     its_records = SeqIO.parse(handle, 'gb')
 
     # write fasta
+    generate_message("Writing FASTA")
     SeqIO.write(its_records, 'data/its.fa', 'fasta')
+
+    generate_message("Done")
 
 if __name__ == '__main__':
     main()
