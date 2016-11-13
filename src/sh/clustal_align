@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+fa_files=(output/*.fa)
+
+printf "fa_files: %s\n" "${fa_files[@]}"
+
+for fa_file in "${fa_files[@]}"; do
+    gene_name="$(basename "${fa_file}" ".fa")"
+    clustalo --full --force --outfmt=fa -i "${fa_file}" \
+        --outfile="output/${gene_name}.faa"
+done

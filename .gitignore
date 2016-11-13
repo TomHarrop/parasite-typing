@@ -1,5 +1,6 @@
 .DS_Store
 data/
-untitled.sublime-project
-untitled.sublime-workspace
+output/
+*.sublime-project
+*.sublime-workspace
 
