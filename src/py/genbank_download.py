@@ -12,9 +12,8 @@ import tompytools
 
 
 # get entrez GIs for COI genes for species
-def get_coi_gis(species_name):
-    term = (species_name + '[ORGN] AND '
-            '(COI OR cytochrome oxidase subunit I)')
+def get_gis(species_name, search_term):
+    term = (species_name + '[ORGN] AND ' + search_term)
     print('Search term: ' + term)
     handle = Entrez.esearch(db='nuccore', term=term)
     record = Entrez.read(handle)
@@ -22,25 +21,14 @@ def get_coi_gis(species_name):
     return(gi_list)
 
 
-# get entrez GIs for ITS1 genes for species
-def get_its_gis(species_name):
-    term = (species_name + '[ORGN] AND '
-            '(ITS1 OR internal transcribed spacer)')
-    print('Search term: ' + term)
-    handle = Entrez.esearch(db='nuccore', term=term)
-    record = Entrez.read(handle)
-    gi_list = record['IdList']
-    return(gi_list)
-
-
-# flatten list cf. `unlist()` in R
-def flatten_list(l):
-    for x in l:
-        if hasattr(x, '__iter__') and not isinstance(x, str):
-            for y in flatten_list(x):
-                yield y
-        else:
-            yield x
+# get GenBank records for GIs
+def get_gb_records(gi_list):
+    handle = Entrez.efetch(
+        db='nuccore',
+        id=gi_list,
+        rettype='gb',
+        retmode='text')
+    return(SeqIO.parse(handle, 'gb'))
 
 
 ########
@@ -63,44 +51,32 @@ def main():
     Entrez.email = args.e
 
     # Search in weevil and both wasps
-    species_names = ['microctonus hyperodae', 'microctonus aethiopoides',
-                     'listronotus bonariensis']
+    species_names = {'mh': 'microctonus hyperodae',
+                     'ma': 'microctonus aethiopoides',
+                     'lb': 'listronotus bonariensis'}
 
-    # get coi gene ids
-    tompytools.generate_message('Getting COI GIs')
-    gi_list_nested = list(get_coi_gis(x) for x in species_names)
-    gi_list_all = list(flatten_list(gi_list_nested))
+    # genes to search for
+    search_terms = {'coi': '(COI OR cytochrome oxidase subunit I)',
+                    'its1': '(ITS1 OR internal transcribed spacer)'}
 
-    # download records
-    tompytools.generate_message('Downloading records')
-    handle = Entrez.efetch(
-        db='nuccore',
-        id=gi_list_all,
-        rettype='gb',
-        retmode='text')
-    coi_records = SeqIO.parse(handle, 'gb')
+    # start seearch
+    for term_key in search_terms:
+        tompytools.generate_message('Getting GIs for ' + term_key)
 
-    # output FASTA
-    tompytools.generate_message('Writing FASTA')
-    SeqIO.write(coi_records, 'data/coi.gb', 'gb')
+        # search by species for each search_term
+        for spec in species_names:
+            tompytools.generate_message('Running search for ' + spec)
+            gi_results = get_gis(species_name=species_names[spec],
+                                 search_term=search_terms[term_key])
 
-    # get ITS gis
-    tompytools.generate_message('Getting ITS1 GIs')
-    its_gis_nested = list(get_its_gis(x) for x in species_names)
-    its_gis_all = list(flatten_list(its_gis_nested))
+            # download results
+            tompytools.generate_message('Downloading GenBank records')
+            gb_records = get_gb_records(gi_results)
 
-    # download ITS records
-    tompytools.generate_message('Downloading records')
-    handle = Entrez.efetch(
-        db='nuccore',
-        id=its_gis_all,
-        rettype='gb',
-        retmode='text')
-    its_records = SeqIO.parse(handle, 'gb')
-
-    # write fasta
-    tompytools.generate_message('Writing FASTA')
-    SeqIO.write(its_records, 'data/its.gb', 'gb')
+            # write gb data to disk
+            file_name = 'data/' + spec + '_' + term_key + '.gb'
+            tompytools.generate_message('Writing GenBank to ' + file_name)
+            SeqIO.write(gb_records, file_name, 'gb')
 
     tompytools.generate_message('Done')
 
