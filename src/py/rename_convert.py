@@ -37,7 +37,7 @@ def main():
         renamed_records = rename_records(gb_records)
 
         # write output
-        output_file = 'output/' + file_name + '.fa'
+        output_file = 'output/fa/' + file_name + '.fa'
         tompytools.generate_message('Writing output to ' + output_file)
         SeqIO.write(renamed_records, output_file, "fasta")
 

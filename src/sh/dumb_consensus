@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+faa_files=(output/faa/*.faa)
+
+for faa_file in "${faa_files[@]}"; do
+    file_name="$(basename "${faa_file}" ".faa")"
+    em_cons -sequence "${faa_file}" -outseq "output/consensus/${file_name}.fa" \
+        -name "${file_name}_consensus" || \
+        cp "${faa_file}" "output/consensus/${file_name}.fa"
+done
