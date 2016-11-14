@@ -3,6 +3,8 @@
 
 from Bio import SeqIO
 import re
+import os
+import tompytools
 
 
 def rename_records(records):
@@ -17,16 +19,27 @@ def rename_records(records):
 
 def main():
 
-    with open('data/coi.gb', 'r') as handle:
-            coi_records = list(SeqIO.parse(handle, 'gb'))
-    coi_records_renamed = rename_records(coi_records)
+    # scan data directory for GenBank files
+    genbank_files = {os.path.splitext(x.name)[0]: x.path
+                     for x in os.scandir('data') if
+                     x.name.endswith('.gb') and x.is_file}
 
-    with open('data/its.gb', 'r') as handle:
-            its_records = list(SeqIO.parse(handle, 'gb'))
-    its_records_renamed = rename_records(its_records)
+    # convert each file to fasta
+    for file_name in genbank_files:
+        tompytools.generate_message('Reading GenBank from ' +
+                                    genbank_files[file_name])
+        # parse GenBank
+        with open(genbank_files[file_name], 'r') as handle:
+            gb_records = list(SeqIO.parse(handle, 'gb'))
 
-    SeqIO.write(coi_records_renamed, "output/coi.fa", "fasta")
-    SeqIO.write(its_records_renamed, "output/its.fa", "fasta")
+        # rename and convert to FASTA
+        tompytools.generate_message('Renaming')
+        renamed_records = rename_records(gb_records)
+
+        # write output
+        output_file = 'output/' + file_name + '.fa'
+        tompytools.generate_message('Writing output to ' + output_file)
+        SeqIO.write(renamed_records, output_file, "fasta")
 
 if __name__ == '__main__':
     main()
