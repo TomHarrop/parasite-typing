@@ -57,7 +57,9 @@ def main():
 
     # genes to search for
     search_terms = {'coi': '(COI OR cytochrome oxidase subunit I)',
-                    'its1': '(ITS1 OR internal transcribed spacer)'}
+                    'its1': '(ITS1 OR internal transcribed spacer)',
+                    '16s': '16S',
+                    '28s': '28S'}
 
     # start seearch
     for term_key in search_terms:
